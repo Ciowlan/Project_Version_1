@@ -26,7 +26,7 @@ class PoseImageAnalyser(
 
     @androidx.camera.core.ExperimentalGetImage
     override fun analyze(imageProxy: ImageProxy) {
-
+        val inputData = FloatArray(13 * 2)
         val mediaImage = imageProxy.image
 
         //Log.d(MainActivity.TAG, "proxy: ${mediaImage?.width} - ${mediaImage?.height}")
