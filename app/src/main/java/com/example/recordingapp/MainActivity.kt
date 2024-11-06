@@ -47,8 +47,7 @@ import java.nio.ByteOrder
 import java.nio.channels.FileChannel
 import org.tensorflow.lite.flex.FlexDelegate;
 import org.tensorflow.lite.gpu.GpuDelegate
-
-
+import java.io.File
 
 
 class MainActivity : AppCompatActivity(), PoseImageAnalyser.PoseListener {
@@ -70,6 +69,8 @@ class MainActivity : AppCompatActivity(), PoseImageAnalyser.PoseListener {
     private var lastPause: Long = 0
     lateinit var end_time: String
     lateinit var interpreter: Interpreter
+    private var currentDate = ""
+    private var data=""
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -119,6 +120,10 @@ class MainActivity : AppCompatActivity(), PoseImageAnalyser.PoseListener {
 
             setRecordingFrame(FrameState.HIDDEN)
             val intent = Intent(this, End::class.java)
+            intent.putExtra("date", "$currentDate")
+            intent.putExtra("ExerciseType", "$data")
+            intent.putExtra("TotalTime", "$end_time")
+            intent.putExtra("CorrectCount", "0")
             startActivity(intent)
 
         }
@@ -152,7 +157,7 @@ class MainActivity : AppCompatActivity(), PoseImageAnalyser.PoseListener {
                 addDelegate(FlexDelegate())
             }
             // 接收数据
-            val data = intent.getStringExtra("KEY_DATA")
+            data = intent.getStringExtra("KEY_DATA").toString()
             if(data=="squat"){
 
                 // 初始化 interpreter 並傳入 options
@@ -165,7 +170,7 @@ class MainActivity : AppCompatActivity(), PoseImageAnalyser.PoseListener {
                 Log.e("check01", "是仰臥起坐")
             }else{
                 // 初始化 interpreter 並傳入 options
-                interpreter = Interpreter(loadModelFile(this, "action_model_2.tflite"), options)
+                interpreter = Interpreter(loadModelFile(this, "push.tflite"), options)
                 Log.e("check01", "是伏地挺身")
             }
 
@@ -546,10 +551,10 @@ class MainActivity : AppCompatActivity(), PoseImageAnalyser.PoseListener {
             }.toTypedArray()
     }
     //----------------------------------- B U T T O N --------------------------------------//
-    private fun getCurrentDate() {
+    fun getCurrentDate() {
         val calendar = Calendar.getInstance()
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        val currentDate = dateFormat.format(calendar.time)
+        currentDate = dateFormat.format(calendar.time)
         dateTextView.text = currentDate
     }
 
