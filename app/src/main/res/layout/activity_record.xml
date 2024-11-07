@@ -26,7 +26,7 @@
         android:layout_height="wrap_content"
         android:text="Record"
         android:textSize="60sp"
-        android:textColor="@android:color/black"
+        android:textColor="#682E2E"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

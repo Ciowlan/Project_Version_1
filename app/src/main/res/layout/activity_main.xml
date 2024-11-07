@@ -21,15 +21,15 @@
 
     <Chronometer
         android:id="@+id/timer"
-        android:layout_width="161dp"
-        android:layout_height="70dp"
-        android:layout_marginTop="28dp"
+        android:layout_width="162dp"
+        android:layout_height="58dp"
+        android:layout_marginTop="16dp"
         android:countDown="false"
         android:format="00:00:00"
         android:gravity="center_horizontal"
         android:textSize="40dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.092"
+        app:layout_constraintHorizontal_bias="0.1"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -117,10 +117,11 @@
 
     <Button
         android:id="@+id/end_button"
-        android:layout_width="153dp"
-        android:layout_height="71dp"
+        android:layout_width="150dp"
+        android:layout_height="70dp"
         android:layout_margin="16dp"
-        android:layout_marginTop="56dp"
+        android:layout_marginTop="32dp"
+        android:layout_marginEnd="32dp"
         android:backgroundTint="#C6964F"
         android:elevation="2dp"
         android:text="END"
@@ -138,7 +139,8 @@
         android:layout_width="150dp"
         android:layout_height="70dp"
         android:layout_margin="16dp"
-        android:layout_marginTop="36dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="32dp"
         android:backgroundTint="#C6964F"
         android:elevation="2dp"
         android:text="START"
@@ -149,13 +151,13 @@
         app:layout_constraintHorizontal_bias="0.089"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/frame_skeleton"
-        app:layout_constraintVertical_bias="0.518" />
+        app:layout_constraintVertical_bias="0.56" />
 
     <TextView
         android:id="@+id/line"
         android:layout_width="19dp"
         android:layout_height="117dp"
-        android:layout_marginStart="24dp"
+        android:layout_marginStart="8dp"
         android:text="|"
         android:textSize="75sp"
         app:layout_constraintStart_toEndOf="@+id/timer"
@@ -165,27 +167,51 @@
         android:id="@+id/date"
         android:layout_width="129dp"
         android:layout_height="40dp"
-        android:layout_marginStart="44dp"
-        android:layout_marginTop="8dp"
-        android:text="TextView"
+        android:text="2024-10-10"
         android:textSize="24sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintStart_toEndOf="@+id/line"
-        app:layout_constraintTop_toBottomOf="@+id/textView4" />
+        app:layout_constraintEnd_toStartOf="@+id/line"
+        app:layout_constraintHorizontal_bias="0.696"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/timer" />
 
     <TextView
         android:id="@+id/textView4"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="40dp"
-        android:layout_marginTop="16dp"
-        android:text="Today"
+        android:layout_marginTop="4dp"
+        android:text="動作"
         android:textSize="34sp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintHorizontal_bias="0.266"
         app:layout_constraintStart_toEndOf="@+id/line"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/textView3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="4dp"
+        android:text="次數"
+        android:textSize="34sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.081"
+        app:layout_constraintStart_toEndOf="@+id/line"
+        app:layout_constraintTop_toBottomOf="@+id/textView4" />
+
+    <TextView
+        android:id="@+id/count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="40dp"
+        android:layout_marginTop="4dp"
+        android:text="0"
+        android:textSize="34sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.661"
+        app:layout_constraintStart_toEndOf="@+id/line"
+        app:layout_constraintTop_toBottomOf="@+id/textView4" />
 
     <Button
         android:id="@+id/return_page"

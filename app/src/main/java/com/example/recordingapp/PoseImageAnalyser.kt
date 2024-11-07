@@ -1,17 +1,14 @@
 package com.example.recordingapp
 
-import android.graphics.Point
-import android.graphics.Rect
 import android.util.Log
 import android.util.Size
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
-import androidx.camera.video.Recorder
-import androidx.camera.video.VideoCapture
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.pose.Pose
 import com.google.mlkit.vision.pose.PoseDetector
 import com.google.mlkit.vision.pose.PoseLandmark
+import java.util.Locale
 import kotlin.math.roundToInt
 
 class PoseImageAnalyser(
@@ -23,12 +20,13 @@ class PoseImageAnalyser(
     private var frameCount = SCORE_DELIVERY_FRAME_RATE
     // We store n scores then analyse body placement given average value
     private val scores = arrayListOf<Double>()
+    private val allPoseLandmarks = listOf(PoseLandmark.LEFT_KNEE, PoseLandmark.LEFT_HIP, PoseLandmark.LEFT_ANKLE)
+
 
     @androidx.camera.core.ExperimentalGetImage
     override fun analyze(imageProxy: ImageProxy) {
         val inputData = FloatArray(13 * 2)
         val mediaImage = imageProxy.image
-
         //Log.d(MainActivity.TAG, "proxy: ${mediaImage?.width} - ${mediaImage?.height}")
 
         if (mediaImage != null) {
@@ -65,6 +63,17 @@ class PoseImageAnalyser(
                         poseListener.fullBodyInFrame(scores.average() > (selectedLandmarks.size - SCORE_DELTA))
                         scores.clear()
                     }
+                    // 取得指定姿勢點的座標並儲存到 angleData
+                    val angleData = mutableListOf<Double>()
+                    allPoseLandmarks.forEach { landmarkId ->
+                        pose.getPoseLandmark(landmarkId)?.let { landmark ->
+                            angleData.add(String.format(Locale.US, "%.2f", landmark.position.x).toDouble())
+                            angleData.add(String.format(Locale.US, "%.2f", landmark.position.y).toDouble())
+                        }
+                    }
+
+                    // 傳遞 angleData 給 PoseListener
+                    poseListener.getXY(angleData)
 
                     imageProxy.close()
 
@@ -105,9 +114,13 @@ class PoseImageAnalyser(
         private const val SCORE_DELIVERY_FRAME_RATE = 10 //Trigger score every x video frame
     }
 
+
     interface PoseListener {
         fun onPoseAnalysed(pose: Pose, frameSize: Size)
         fun fullBodyInFrame(inFrame: Boolean)
+        fun getXY(angleData: List<Double>)
     }
+
+
 
 }

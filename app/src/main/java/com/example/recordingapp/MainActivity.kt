@@ -1,7 +1,6 @@
 package com.example.recordingapp
 
 import android.Manifest
-import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -9,16 +8,12 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
-import android.media.Image
 import android.os.Build
 import android.os.Bundle
-import android.os.CountDownTimer
 import android.os.SystemClock
-import android.provider.MediaStore
 import android.util.Log
 import android.util.Size
 import android.view.Display
-import android.view.View
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.TextView
@@ -26,8 +21,6 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.video.*
-import androidx.camera.video.VideoCapture
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.recordingapp.databinding.ActivityMainBinding
@@ -47,15 +40,12 @@ import java.nio.ByteOrder
 import java.nio.channels.FileChannel
 import org.tensorflow.lite.flex.FlexDelegate;
 import org.tensorflow.lite.gpu.GpuDelegate
-import java.io.File
 
 
 class MainActivity : AppCompatActivity(), PoseImageAnalyser.PoseListener {
     private lateinit var viewBinding: ActivityMainBinding
 
-    private var videoCapture: VideoCapture<Recorder>? = null
-    private var recording: Recording? = null
-    private var recordingState = RecordingState.STOPPED
+//    private var videoCapture: VideoCapture<Recorder>? = null
     private lateinit var cameraExecutor: ExecutorService
 
     private var analysisActivated = true
@@ -63,6 +53,8 @@ class MainActivity : AppCompatActivity(), PoseImageAnalyser.PoseListener {
     private lateinit var analysisSkeletonView: AnalysisSkeletonView
 
     private lateinit var dateTextView: TextView
+    private lateinit var sports: TextView
+    private lateinit var count: TextView
 
     private lateinit var chronometer: Chronometer
     private var isRunning = false
@@ -71,7 +63,9 @@ class MainActivity : AppCompatActivity(), PoseImageAnalyser.PoseListener {
     lateinit var interpreter: Interpreter
     private var currentDate = ""
     private var data=""
-
+    private var countData = 0 // 用於記錄次數
+    private var isSit = false // 判斷是否處於標準姿勢
+    private var frist = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -84,6 +78,8 @@ class MainActivity : AppCompatActivity(), PoseImageAnalyser.PoseListener {
 
         // 初始化 TextView
         dateTextView = findViewById(R.id.date)
+        sports = findViewById(R.id.textView4)
+        count = findViewById(R.id.count)
 
         // 设置当天日期
         getCurrentDate()
@@ -93,12 +89,19 @@ class MainActivity : AppCompatActivity(), PoseImageAnalyser.PoseListener {
 
         val resetButton: Button = findViewById(R.id.end_button)
 
+
+
         startButton.setOnClickListener {
             if (!isRunning) {
                 chronometer.base = SystemClock.elapsedRealtime() - lastPause
                 chronometer.start()
                 isRunning = true
                 startButton.text = "STOP"
+                isSit = false
+                if(frist){
+                    countData = 0
+                    frist = false
+                }
             }
             else{
                 lastPause = SystemClock.elapsedRealtime() - chronometer.base
@@ -123,7 +126,9 @@ class MainActivity : AppCompatActivity(), PoseImageAnalyser.PoseListener {
             intent.putExtra("date", "$currentDate")
             intent.putExtra("ExerciseType", "$data")
             intent.putExtra("TotalTime", "$end_time")
-            intent.putExtra("CorrectCount", "0")
+            intent.putExtra("CorrectCount", countData.toString())
+            countData = 0
+            frist = true
             startActivity(intent)
 
         }
@@ -159,16 +164,17 @@ class MainActivity : AppCompatActivity(), PoseImageAnalyser.PoseListener {
             // 接收数据
             data = intent.getStringExtra("KEY_DATA").toString()
             if(data=="squat"){
-
+                sports.text = "深蹲"
                 // 初始化 interpreter 並傳入 options
                 interpreter = Interpreter(loadModelFile(this, "action_model_2.tflite"), options)
                 Log.e("check01", "是深蹲")
-
             }else if(data=="sit"){
+                sports.text = "仰臥起坐"
                 // 初始化 interpreter 並傳入 options
-                interpreter = Interpreter(loadModelFile(this, "action_model_2.tflite"), options)
+                interpreter = Interpreter(loadModelFile(this, "sit.tflite"), options)
                 Log.e("check01", "是仰臥起坐")
             }else{
+                sports.text = "伏地挺身"
                 // 初始化 interpreter 並傳入 options
                 interpreter = Interpreter(loadModelFile(this, "push.tflite"), options)
                 Log.e("check01", "是伏地挺身")
@@ -188,11 +194,6 @@ class MainActivity : AppCompatActivity(), PoseImageAnalyser.PoseListener {
             ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
         }
 
-        // Set up the listener for video capture button
-//        viewBinding.videoCaptureButton.setOnClickListener {
-//            if (recording != null) stopVideoCapture()
-//            else countDownStart(COUNT_DOWN_MANUAL_RECORDING).start()
-//        }
 
         cameraExecutor = Executors.newSingleThreadExecutor()
 
@@ -208,71 +209,6 @@ class MainActivity : AppCompatActivity(), PoseImageAnalyser.PoseListener {
 
     }
 
-    private fun stopVideoCapture() {
-        recording?.stop()
-        recording = null
-    }
-
-    private fun captureVideo() {
-        val videoCapture = this.videoCapture ?: return
-
-        //viewBinding.videoCaptureButton.isEnabled = false
-
-        if (recording != null) {
-            stopVideoCapture()
-            return
-        }
-
-        // create and start a new recording session
-        val name = SimpleDateFormat(FILENAME_FORMAT, Locale.getDefault())
-            .format(System.currentTimeMillis())
-        val contentValues = ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, name)
-            put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
-            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
-                put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/CameraX-Video")
-            }
-        }
-
-        val mediaStoreOutputOptions = MediaStoreOutputOptions
-            .Builder(contentResolver, MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
-            .setContentValues(contentValues)
-            .build()
-        recording = videoCapture.output
-            .prepareRecording(this, mediaStoreOutputOptions)
-            .start(ContextCompat.getMainExecutor(this)) { recordEvent ->
-                when (recordEvent) {
-                    is VideoRecordEvent.Start -> {
-                        recordingState = RecordingState.RECORDING
-                        filmingDurationCountDown.start()
-                        viewBinding.recordingIndicator.visibility = View.VISIBLE
-//                        viewBinding.videoCaptureButton.apply {
-//                            text = getString(R.string.stop_capture)
-//                            isEnabled = true
-//                        }
-                    }
-
-                    is VideoRecordEvent.Finalize -> {
-                        if (!recordEvent.hasError()) {
-                            val msg =
-                                "Video capture succeeded: " + "${recordEvent.outputResults.outputUri}"
-                            Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
-                            Log.d(TAG, msg)
-                        } else {
-                            recording?.close()
-                            recording = null
-                            Log.e(TAG, "Video capture ends with error: " + "${recordEvent.error}")
-                        }
-                        viewBinding.recordingIndicator.visibility = View.GONE
-//                        viewBinding.videoCaptureButton.apply {
-//                            text = getString(R.string.start_capture)
-//                            isEnabled = true
-//                        }
-                        recordingState = RecordingState.STOPPED
-                    }
-                }
-            }
-    }
 
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
@@ -296,14 +232,14 @@ class MainActivity : AppCompatActivity(), PoseImageAnalyser.PoseListener {
 //                }
             //viewBinding.viewFinder.scaleType = PreviewView.ScaleType.FIT_CENTER
 
-            val recorder = Recorder.Builder()
-                .setQualitySelector(QualitySelector.from(Quality.LOWEST))
-                .build()
-            videoCapture = VideoCapture.withOutput(recorder)
+//            val recorder = Recorder.Builder()
+//                .setQualitySelector(QualitySelector.from(Quality.LOWEST))
+//                .build()
+//            videoCapture = VideoCapture.withOutput(recorder)
 
 
             // Select front camera as a default
-            //val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
+            //val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
             val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
 
             val imageAnalysis = getImageAnalysis()
@@ -343,7 +279,8 @@ class MainActivity : AppCompatActivity(), PoseImageAnalyser.PoseListener {
                 try {
                     analysisActivated = false
                     //viewBinding.videoCaptureButton.visibility = View.VISIBLE
-                    cameraProvider.bindToLifecycle(this, cameraSelector, preview, videoCapture)
+                    //cameraProvider.bindToLifecycle(this, cameraSelector, preview, videoCapture)
+                    cameraProvider.bindToLifecycle(this, cameraSelector, preview)
                 } catch (exc: Exception) {
                     Log.e(TAG, "Use case binding without analysis failed", exc)
                     //todo error message
@@ -411,18 +348,13 @@ class MainActivity : AppCompatActivity(), PoseImageAnalyser.PoseListener {
         // 使用自定义模型分析
         analyzePoseWithCustomModel(landmarks, screenWidth, screenHeight)
 
+
+
     }
 
     override fun fullBodyInFrame(inFrame: Boolean) {
         if (inFrame) {
             setRecordingFrame(FrameState.GOOD)
-            /*
-            if (recordingState == RecordingState.STOPPED) {
-                // Launch automatic recording
-                countDownStart(COUNT_DOWN_POSTURE_DETECTION).start()
-            }
-             */
-
         } else setRecordingFrame(FrameState.WRONG)
     }
 
@@ -447,42 +379,6 @@ class MainActivity : AppCompatActivity(), PoseImageAnalyser.PoseListener {
         GOOD(20, Color.GREEN),
         WRONG(20, Color.RED)
     }
-
-    private enum class RecordingState() {
-        STOPPED, COUNT_DOWN, RECORDING
-    }
-
-//    private fun countDownStart(time: Long): CountDownTimer {
-//        viewBinding.textCountdown.visibility = View.VISIBLE
-////        viewBinding.videoCaptureButton.text = ""
-////        viewBinding.videoCaptureButton.isEnabled = false
-//        recordingState = RecordingState.COUNT_DOWN
-//
-//        return object : CountDownTimer(time + 1_000, 1_000L) {
-//            override fun onTick(p0: Long) {
-//                if (p0 < 1_000) {
-//                    viewBinding.textCountdown.text = "GO_"
-//                } else {
-//                    viewBinding.textCountdown.text = (p0 / 1_000L).toString()
-//                }
-//            }
-//
-//            override fun onFinish() {
-//                viewBinding.textCountdown.visibility = View.GONE
-//                captureVideo()
-//            }
-//        }
-//    }
-
-    private val filmingDurationCountDown: CountDownTimer =
-
-        object : CountDownTimer(FILMING_DURATION, 1_000L) {
-            override fun onTick(p0: Long) {}
-
-            override fun onFinish() {
-                stopVideoCapture()
-            }
-        }
 
     //--------------------------------- P E R M I S S I O N S ------------------------------------//
 
@@ -676,6 +572,69 @@ class MainActivity : AppCompatActivity(), PoseImageAnalyser.PoseListener {
 
 
 
+    override fun getXY(angleData: List<Double>) {
+        // 確保 angleData 有足夠的座標點
+        if (angleData.size >= 6) {
+
+            // 計算三個點之間的角度
+            val angle = getIn_angle(angleData[0], angleData[1], angleData[2], angleData[3], angleData[4], angleData[5])
+            checkAngle(angle)
+            count.text = countData.toString()
+            Log.d("Angle", "Calculated angle: $angle")
+        } else {
+            Log.d("Angle", "Not enough landmarks to calculate angle")
+        }
+    }
+
+    fun getIn_angle(x1: Double, x2: Double, y1: Double, y2: Double, z1: Double, z2: Double): Int {
+        val t = (y1 - x1) * (z1 - x1) + (y2 - x2) * (z2 - x2)
+        val denominator = Math.sqrt(
+            (Math.abs((y1 - x1) * (y1 - x1)) + Math.abs((y2 - x2) * (y2 - x2))) *
+                    (Math.abs((z1 - x1) * (z1 - x1)) + Math.abs((z2 - x2) * (z2 - x2)))
+        )
+        Log.d("Angle", (180 * Math.acos(t / denominator) / Math.PI).toInt().toString())
+        return (180 * Math.acos(t / denominator) / Math.PI).toInt()
+    }
+
+
+
+    private fun checkAngle(angle: Int) {
+        when (angle) {
+            in 121..169 -> { // 異常角度範圍
+//                btnPlay.text = "異常"
+//                btnPlay.setBackgroundColor(Color.RED)
+                if (!isSit) {
+                    Log.d("TAG1", "RED")
+                } else {
+                    Log.d("TAG1", "RED2")
+                    isSit = false
+                    countData += 1 // 更新次數
+                    Log.d("count", countData.toString())
+//                    btnSelectFile.text = countData.toString()
+                }
+            }
+            in 96..120 -> { // 未達標角度範圍
+//                btnPlay.text = "未達標"
+//                btnPlay.setBackgroundColor(ContextCompat.getColor(this, R.color.myColor2))
+                if (!isSit) {
+                    Log.d("TAG1", "YEALLOW")
+                } else {
+                    Log.d("TAG1", "YEALLOW2")
+                }
+            }
+            in 80..95 -> { // 標準角度範圍
+//                btnPlay.text = "標準"
+//                btnPlay.setBackgroundColor(Color.GREEN)
+                if (!isSit) {
+                    Log.d("TAG1", "GREEN")
+                    isSit = true
+                } else {
+                    Log.d("TAG1", "GREEN2")
+                }
+            }
+
+        }
+    }
 
 
 }

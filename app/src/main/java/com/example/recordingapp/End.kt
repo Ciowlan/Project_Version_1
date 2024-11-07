@@ -7,6 +7,7 @@ import android.util.Log
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.example.recordingapp.R
 import java.io.File
 
 class End : AppCompatActivity() {

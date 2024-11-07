@@ -9,21 +9,21 @@
 
     <application
         android:allowBackup="true"
-        android:icon="@drawable/ic_videocam"
+        android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@drawable/ic_videocam"
+        android:roundIcon="@drawable/ic_launcher"
         android:supportsRtl="true"
         android:theme="@style/Theme.RecordingApp">
         <activity
-            android:name=".MainActivity"
+            android:name="com.example.recordingapp.MainActivity"
             android:exported="true">
         </activity>
         <activity
-            android:name=".Record"
+            android:name="com.example.recordingapp.Record"
             android:exported="true">
         </activity>
         <activity
-            android:name=".Start"
+            android:name="com.example.recordingapp.Start"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -32,11 +32,11 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".Choose"
+            android:name="com.example.recordingapp.Choose"
             android:exported="true">
         </activity>
         <activity
-            android:name=".End"
+            android:name="com.example.recordingapp.End"
             android:exported="true">
         </activity>
 

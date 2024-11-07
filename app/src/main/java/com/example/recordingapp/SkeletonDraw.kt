@@ -27,16 +27,16 @@ class SkeletonDraw(context: Context?, var pose: Pose) : View(context) {
         val display: Display = wm.defaultDisplay
         screenWidth = display.width
 
-        val blue = ResourcesCompat.getColor(this.context.resources, R.color.blue, null)
+        val blue = ResourcesCompat.getColor(this.context.resources, R.color.white, null)
 
         boundaryPaint.color = blue
-        boundaryPaint.strokeWidth = 10f
+        boundaryPaint.strokeWidth = 5f
         boundaryPaint.style = Paint.Style.STROKE
 
-        leftPaint.strokeWidth = 10f
+        leftPaint.strokeWidth = 5f
         leftPaint.color = blue
 
-        rightPaint.strokeWidth = 10f
+        rightPaint.strokeWidth = 5f
         rightPaint.color = blue
     }
 
